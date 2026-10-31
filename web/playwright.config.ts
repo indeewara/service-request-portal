@@ -5,6 +5,8 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   fullyParallel: false,
+  // One at a time: every test shares one database (e.g. staff tests act on the newest requests).
+  workers: 1,
   reporter: [['list']],
   use: {
     baseURL: process.env.WEB_URL ?? 'http://localhost:3000',
