@@ -202,6 +202,7 @@ Client Components (`'use client'`) only where the browser has to do something:
 | `features/requests/LiveStatus` | Holds the `EventSource` connection |
 | `features/staff/StatusChange` | Confirmation dialog, pending state |
 | `features/auth/LoginForm` | Error message and pending state (`useActionState`) |
+| `app/error.tsx` | Next.js requires error boundaries to be Client Components (its "Try again" button resets the page) |
 
 Data crosses the boundary in one direction: Server Components fetch and pass plain props down. Client Components never call the API themselves; they call **Server Actions** (`features/*/actions.ts`), which run on the server, re-validate their input, and call the API with the user's token. The one exception is the photo upload, which goes from the browser straight to S3 with the pre-signed POST (no token involved).
 
