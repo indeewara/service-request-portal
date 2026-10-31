@@ -15,6 +15,7 @@ A first version of a portal where customers report problems with building-materi
 ```
 /api            NestJS backend (modular monolith)
 /web            Next.js frontend (App Router)
+/infra          LocalStack bucket setup, Part C performance script
 docker-compose.yml
 README.md       how to run, decisions, assumptions (this file)
 DATABASE.md     Part C – slow query + zero-downtime schema change
@@ -79,17 +80,20 @@ Two customers exist so cross-customer access can be tested (Alice must never see
 ```bash
 # API
 cd api
+npm ci
+cp .env.example .env  # the integration tests connect to the services on localhost
 npm test              # unit: status workflow (all 16 transitions), guard, ownership rule, route access table
-npm run test:e2e      # integration against real Postgres/Redis/S3/Mailpit (needs docker compose up db redis localstack mailpit)
+npm run test:e2e      # integration against real Postgres/Redis/S3/Mailpit (needs: docker compose up db redis localstack mailpit)
 
 # Web
 cd web
 npm ci
 npm test              # component tests: request form validation
+npx playwright install chromium
 npm run test:e2e      # Playwright: customer flow (desktop + mobile), axe scans, keyboard-only flow
-                      # needs the full stack running; on macOS 13, where Playwright's Chromium
-                      # isn't available, add PLAYWRIGHT_CHANNEL=chrome to use the installed Chrome
 ```
+
+The web end-to-end tests need the full stack running, and they log in many times, so start it with a higher login limit: `LOGIN_RATE_LIMIT=1000 docker compose up`. On macOS 13, where Playwright's own Chromium isn't supported, add `PLAYWRIGHT_CHANNEL=chrome` to use the installed Chrome.
 
 ---
 
@@ -173,7 +177,7 @@ Next.js 16 (App Router, TypeScript) in `/web`. Plain CSS, no UI framework: the b
 
 | Page | Choice | One-line reason |
 |---|---|---|
-| `/help` | SSG with ISR (revalidate daily, or on demand) | Public content that changes a few times a year: build it once, serve it fast, refresh without a redeploy. |
+| `/help` | SSG with ISR (revalidate daily) | Public content that changes a few times a year: build it once, serve it fast, refresh without a redeploy. |
 | `/requests/new` | Static shell + client form | No per-user data on the page; the form, validation and upload progress need interactivity, so they're a Client Component. |
 | `/requests/[id]` | SSR, no caching | Private, per-customer data, and the photo download URLs are short-lived, so it must be rendered fresh on each request; a small Client Component then handles live updates over SSE. |
 | `/staff` | SSR, driven by URL search params | Filters and pagination live in the URL, so the server renders exactly the filtered page on each request, and a bookmarked link reproduces the view. |
@@ -219,7 +223,7 @@ Live updates: an SSE event doesn't carry data, it triggers `router.refresh()`, w
 - Every input has a `<label>`; hints and errors are tied to the field with `aria-describedby`, invalid fields get `aria-invalid`.
 - On a failed submit, an error summary (`role="alert"`) lists each problem as a link to its field and receives focus, so keyboard and screen-reader users land on it.
 - Upload progress uses labelled `<progress>` elements plus a polite live region ("Uploading photo 1 of 2"); live status changes are announced the same way.
-- Keyboard: skip link, visible focus ring (yellow outline with a dark ring, visible on any background), native controls only. The staff confirmation is a native `<dialog>` opened with `showModal()`: it traps focus, closes on Escape and returns focus. Tables have a caption and header scopes; on narrow screens they scroll inside a focusable region.
+- Keyboard: skip link, visible focus ring (a 3px blue outline, 6.7:1 against white), native controls only. The staff confirmation is a native `<dialog>` opened with `showModal()`: it traps focus, closes on Escape and returns focus. Tables have a caption and header scopes; on narrow screens they scroll inside a focusable region.
 - Colours were chosen for WCAG AA (body text 16:1, links and buttons 8:1, error text 6.5:1); status is always written out, never colour alone.
 - Works on mobile and desktop: fluid layout, no fixed widths; the main customer flow is tested on both.
 
@@ -281,12 +285,25 @@ Rules: `app/` only composes; features never import from each other or get import
 - Customers do not add comments; history is status-only.
 - "Never send the same email twice" means at most one email per status change.
 - Date filters (`from`, `to`) are whole days in UTC, both inclusive.
-- Customers can add photos to their request in any status (up to 5); only the owner can upload, staff can view.
-- Status history shows who changed it as a user id; showing staff names to customers is a UI decision for Part B.
-- _Add more as they come up._
+- The API lets the owner add photos in any status (up to 5); the web app offers it only while creating the request. Staff can view photos but not upload them.
+- Status history shows customers "You" or "Service team", not staff names.
+- All dates and times are in UTC, and the portal is in English only.
+- Locally, the email provider is a mock that fails on purpose and delivers to Mailpit. Production would use Amazon SES (see [DESIGN.md](DESIGN.md)).
 
 ## Left out / next steps
-_TODO: fill in honestly at the end (e.g. refresh tokens, virus scanning of uploads, image thumbnails, staff assignment, i18n, CI pipeline)._
+
+What I'd do next with more time, roughly in order:
+
+1. **Keyset pagination and the dashboard index** from [DATABASE.md](DATABASE.md). The staff list uses page numbers and an exact count, which is fine at launch but slows down as the table grows.
+2. **Run migrations as a separate deploy step.** They run when the API starts, so two instances starting at once could race.
+3. **Run the email worker as its own container** (same image). It runs inside the API process today, which is simple locally but means email retries share resources with API requests.
+4. **Login rate limit in Redis.** It's counted in memory, so each API instance has its own limit. With several instances it needs Redis-backed storage or a WAF rule.
+5. **The SES send-events check** described in DESIGN.md. Locally, the mock provider uses an idempotency key instead.
+6. **Sessions:** refresh tokens or server-side sessions, so a session can be ended before its token expires, and MFA for staff.
+7. **Frontend:** adding photos from the request page (the API already supports it), live updates on the staff page too, API types generated from `/docs-json` instead of written by hand, CSP nonces to drop `'unsafe-inline'`, and a manual screen-reader pass.
+8. **Delivery and safety:** a CI pipeline running all tests on every push, and virus scanning of uploaded photos.
+
+Left out on purpose for v1: staff assignment, comments, image thumbnails and translations, because the brief doesn't need them and they'd add scope without testing anything new.
 
 ## Assessment checklist
 

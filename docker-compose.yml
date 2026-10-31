@@ -66,7 +66,8 @@ services:
       MOCK_EMAIL_FAILURE_RATE: "0.3"
       NOTIFICATION_BACKOFF_MS: "2000"
       LOG_LEVEL: info
-      LOGIN_RATE_LIMIT: "5"
+      # Raise it for the end-to-end tests, which log in many times: LOGIN_RATE_LIMIT=1000 docker compose up
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-5}
       # Behind the Next.js server.
       TRUST_PROXY_HOPS: "1"
     ports:
