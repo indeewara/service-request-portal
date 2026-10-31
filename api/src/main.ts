@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { configureApp } from './app.setup.js';
+import { appConfig, type AppConfig } from './config/app.config.js';
 
 try {
   process.loadEnvFile();
@@ -11,6 +12,6 @@ try {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   configureApp(app);
-  await app.listen(process.env.PORT ?? 4000);
+  await app.listen(app.get<AppConfig>(appConfig.KEY).PORT);
 }
 await bootstrap();

@@ -1,10 +1,10 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import { EntityManager, LessThan, Repository } from 'typeorm';
 import { RequestStatus } from '../common/request-status.js';
+import { appConfig, type AppConfig } from '../config/app.config.js';
 import { Notification, NotificationStatus } from './notification.entity.js';
-import { redisUrl } from './redis.js';
 
 export const NOTIFICATIONS_QUEUE = 'notifications';
 export interface EmailJob {
@@ -20,15 +20,18 @@ const SWEEP_INTERVAL_MS = 30_000;
 @Injectable()
 export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationsService.name);
-  readonly queue = new Queue<EmailJob>(NOTIFICATIONS_QUEUE, {
-    connection: { url: redisUrl() },
-  });
+  readonly queue: Queue<EmailJob>;
   private sweeper?: NodeJS.Timeout;
 
   constructor(
     @InjectRepository(Notification)
     private readonly notifications: Repository<Notification>,
-  ) {}
+    @Inject(appConfig.KEY) private readonly config: AppConfig,
+  ) {
+    this.queue = new Queue<EmailJob>(NOTIFICATIONS_QUEUE, {
+      connection: { url: config.REDIS_URL },
+    });
+  }
 
   /** Call inside the status-change transaction (outbox pattern). */
   async recordStatusChange(
@@ -58,7 +61,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         // Waits 1×, 2×, 4×, 8× the delay between attempts.
         backoff: {
           type: 'exponential',
-          delay: Number(process.env.NOTIFICATION_BACKOFF_MS ?? 2000),
+          delay: this.config.NOTIFICATION_BACKOFF_MS,
         },
         removeOnComplete: { age: 24 * 60 * 60 },
         removeOnFail: false,

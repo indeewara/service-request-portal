@@ -8,7 +8,8 @@ import {
 } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { appConfig, type AppConfig } from '../config/app.config.js';
 
 /**
  * Thin wrapper over S3 (LocalStack locally). On real AWS, leave S3_ENDPOINT and
@@ -22,14 +23,11 @@ export class StorageService {
   // Signs URLs handed to browsers, so they must carry the public host.
   private readonly signer: S3Client;
 
-  constructor() {
-    const bucket = process.env.S3_BUCKET;
-    if (!bucket) throw new Error('S3_BUCKET is not set');
-    this.bucket = bucket;
-
-    const { S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_ENDPOINT } = process.env;
+  constructor(@Inject(appConfig.KEY) config: AppConfig) {
+    this.bucket = config.S3_BUCKET;
+    const { S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_ENDPOINT } = config;
     const base: S3ClientConfig = {
-      region: process.env.S3_REGION ?? 'us-east-1',
+      region: config.S3_REGION,
       forcePathStyle: Boolean(S3_ENDPOINT),
       credentials:
         S3_ACCESS_KEY_ID && S3_SECRET_ACCESS_KEY
@@ -39,7 +37,7 @@ export class StorageService {
     this.client = new S3Client({ ...base, endpoint: S3_ENDPOINT });
     this.signer = new S3Client({
       ...base,
-      endpoint: process.env.S3_PUBLIC_ENDPOINT ?? S3_ENDPOINT,
+      endpoint: config.S3_PUBLIC_ENDPOINT ?? S3_ENDPOINT,
     });
   }
 

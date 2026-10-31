@@ -5,10 +5,10 @@ import { CreateAttachments1761811200000 } from './migrations/1761811200000-Creat
 import { CreateNotifications1761897600000 } from './migrations/1761897600000-CreateNotifications.js';
 
 // Schema changes only through migrations; `synchronize` stays off.
-export function databaseOptions(): DataSourceOptions {
+export function databaseOptions(url: string): DataSourceOptions {
   return {
     type: 'postgres',
-    url: process.env.DATABASE_URL,
+    url,
     synchronize: false,
     migrations: [
       CreateUsers1761638400000,

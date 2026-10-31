@@ -1,8 +1,8 @@
-import { Injectable, Logger, MessageEvent, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, MessageEvent, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { filter, interval, map, merge, Observable, Subject } from 'rxjs';
 import { RequestStatus } from '../common/request-status.js';
-import { redisUrl } from './redis.js';
+import { appConfig, type AppConfig } from '../config/app.config.js';
 
 const CHANNEL = 'request-status';
 // Below the ALB's 60s idle timeout, so open streams aren't cut.
@@ -21,12 +21,14 @@ export interface StatusChangedEvent {
 @Injectable()
 export class RequestEventsService implements OnModuleDestroy {
   private readonly logger = new Logger(RequestEventsService.name);
-  private readonly pub = new Redis(redisUrl());
+  private readonly pub: Redis;
   // ponytail: one channel, every instance filters all events; per-request channels if volume grows.
-  private readonly sub = new Redis(redisUrl());
+  private readonly sub: Redis;
   private readonly events = new Subject<StatusChangedEvent>();
 
-  constructor() {
+  constructor(@Inject(appConfig.KEY) config: AppConfig) {
+    this.pub = new Redis(config.REDIS_URL);
+    this.sub = new Redis(config.REDIS_URL);
     for (const client of [this.pub, this.sub]) {
       client.on('error', (err) =>
         this.logger.error({ msg: 'Live updates Redis error', error: err.message }),

@@ -35,6 +35,7 @@ LEADERSHIP.md   Part E – tech lead scenarios
 | Object storage | LocalStack 4.4 (S3 only) | Same SDK (`@aws-sdk/client-s3`) as real S3. MinIO was the first choice, but its official images are no longer publicly pullable |
 | Live updates | Server-Sent Events | One-way server→client is all we need; plain HTTP, auto-reconnect |
 | Validation | `class-validator` (API), `zod` (web) | Standard for each framework |
+| Configuration | `@nestjs/config` | One typed config (`src/config/app.config.ts`), validated at start-up: a missing or invalid setting stops the API with a message listing every problem |
 | Logging | `nestjs-pino` | Structured JSON logs, correlation ID per request, field redaction |
 | Docs | `@nestjs/swagger` | OpenAPI at `/docs` |
 | Rate limiting | `@nestjs/throttler` | Login endpoint protection |

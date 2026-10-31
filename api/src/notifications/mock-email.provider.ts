@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import nodemailer from 'nodemailer';
-import { redisUrl } from './redis.js';
+import type { Transporter } from 'nodemailer';
+import { appConfig, type AppConfig } from '../config/app.config.js';
 
 export interface EmailMessage {
   idempotencyKey: string;
@@ -22,17 +23,21 @@ const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 @Injectable()
 export class MockEmailProvider implements OnModuleDestroy {
   private readonly logger = new Logger(MockEmailProvider.name);
-  failureRate = Number(process.env.MOCK_EMAIL_FAILURE_RATE ?? 0.3);
+  failureRate: number;
   /** Returns 0–1 per call; below failureRate means failure. Replaceable in tests. */
   roll: (message: EmailMessage) => number = () => Math.random();
 
   // Stands for the provider's own key store, which outlives our process.
-  private readonly redis = new Redis(redisUrl()).on('error', (err) =>
-    this.logger.error({ msg: 'Mock provider Redis error', error: err.message }),
-  );
-  private readonly smtp = nodemailer.createTransport(
-    process.env.SMTP_URL ?? 'smtp://localhost:1025',
-  );
+  private readonly redis: Redis;
+  private readonly smtp: Transporter;
+
+  constructor(@Inject(appConfig.KEY) private readonly config: AppConfig) {
+    this.failureRate = config.MOCK_EMAIL_FAILURE_RATE;
+    this.redis = new Redis(config.REDIS_URL).on('error', (err) =>
+      this.logger.error({ msg: 'Mock provider Redis error', error: err.message }),
+    );
+    this.smtp = nodemailer.createTransport(config.SMTP_URL);
+  }
 
   async send(message: EmailMessage): Promise<void> {
     const roll = this.roll(message);
@@ -45,7 +50,7 @@ export class MockEmailProvider implements OnModuleDestroy {
     if (firstTime) {
       try {
         await this.smtp.sendMail({
-          from: process.env.MAIL_FROM ?? 'Service Portal <no-reply@portal.local>',
+          from: this.config.MAIL_FROM,
           to: message.to,
           subject: message.subject,
           text: message.text,

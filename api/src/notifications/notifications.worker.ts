@@ -1,13 +1,13 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job, UnrecoverableError, Worker } from 'bullmq';
 import { Repository } from 'typeorm';
 import { UsersService } from '../auth/users.service.js';
 import { RequestStatus } from '../common/request-status.js';
+import { appConfig, type AppConfig } from '../config/app.config.js';
 import { MockEmailProvider } from './mock-email.provider.js';
 import { Notification, NotificationStatus } from './notification.entity.js';
 import { EmailJob, NOTIFICATIONS_QUEUE } from './notifications.service.js';
-import { redisUrl } from './redis.js';
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
   [RequestStatus.NEW]: 'New',
@@ -39,13 +39,14 @@ export class NotificationsWorker implements OnModuleInit, OnModuleDestroy {
     private readonly notifications: Repository<Notification>,
     private readonly users: UsersService,
     private readonly email: MockEmailProvider,
+    @Inject(appConfig.KEY) private readonly config: AppConfig,
   ) {}
 
   onModuleInit() {
     this.worker = new Worker<EmailJob>(
       NOTIFICATIONS_QUEUE,
       (job) => this.process(job),
-      { connection: { url: redisUrl() }, concurrency: 5 },
+      { connection: { url: this.config.REDIS_URL }, concurrency: 5 },
     );
     this.worker.on('error', (err) =>
       this.logger.error({ msg: 'Worker connection error', error: err.message }),

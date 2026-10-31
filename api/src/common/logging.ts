@@ -23,10 +23,10 @@ type Req = IncomingMessage & {
  * request/response serializers whitelist method, path and status (no headers,
  * no bodies), and the code only ever logs ids.
  */
-export const loggerParams = (): Params => ({
+export const loggerParams = (level: string): Params => ({
   pinoHttp: [
     {
-      level: process.env.LOG_LEVEL ?? 'info',
+      level,
       formatters: { level: (label: string) => ({ level: label }) },
       // Set by the correlationId middleware, which runs first.
       genReqId: (req: Req) => req.correlationId ?? randomUUID(),

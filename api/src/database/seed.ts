@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { Role } from '../auth/auth.types.js';
 import { hashPassword } from '../auth/password.js';
 import { User } from '../auth/user.entity.js';
+import { validateEnv } from '../config/app.config.js';
 import { databaseOptions } from './database.options.js';
 
 // Demo accounts for local use only. Two customers so cross-customer access can be tested.
@@ -31,7 +32,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     // No .env file: rely on real environment variables.
   }
   const dataSource = await new DataSource({
-    ...databaseOptions(),
+    ...databaseOptions(validateEnv(process.env).DATABASE_URL),
     entities: [User],
   }).initialize();
   await dataSource.runMigrations();
