@@ -15,7 +15,7 @@ A first version of a portal where customers report problems with building-materi
 ```
 /api            NestJS backend (modular monolith)
 /web            Next.js frontend (App Router)
-/infra          LocalStack bucket setup, Part C performance script
+/infra          LocalStack bucket setup, Part C performance script, load test
 docker-compose.yml
 README.md       how to run, decisions, assumptions (this file)
 DATABASE.md     Part C – slow query + zero-downtime schema change
@@ -85,6 +85,8 @@ npm ci
 cp .env.example .env  # the integration tests connect to the services on localhost
 npm test              # unit: status workflow (all 16 transitions), guard, ownership rule, route access table, config validation
 npm run test:e2e      # integration against real Postgres/Redis/S3/Mailpit (needs: docker compose up db redis localstack mailpit)
+                      # if the full stack is running, stop its API first (docker compose stop api web):
+                      # its email worker would pick up the tests' email jobs
 
 # Web
 cd web
