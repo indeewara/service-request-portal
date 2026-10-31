@@ -54,7 +54,7 @@ LEADERSHIP.md   Part E – tech lead scenarios
 docker compose up --build
 ```
 
-No `.env` file is needed: the compose file sets everything the containers use. The first run takes a few minutes while the images build. It needs ports 3000, 4000, 5432, 6379, 4566, 1025 and 8025 to be free.
+No `.env` file is needed: the compose file sets everything the containers use. The first run takes a few minutes while the images build. It needs ports 3000, 4000, 5432, 6379, 4566, 1025 and 8025 to be free. With Colima, keep the repository inside your home folder: Colima only shares that folder with containers by default, and otherwise LocalStack can't read its bucket setup script.
 
 | Service | URL |
 |---|---|
