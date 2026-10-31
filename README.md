@@ -315,4 +315,4 @@ _TODO: fill in honestly at the end (e.g. refresh tokens, virus scanning of uploa
 - [x] DATABASE.md (C1, C2 with SQL)
 - [x] DESIGN.md (4 diagrams, 7 questions)
 - [x] LEADERSHIP.md (E1–E7, ≤ 200 words each except E1)
-- [ ] Meaningful commit history; `docker compose up` starts everything
+- [x] Meaningful commit history; `docker compose up` starts everything
