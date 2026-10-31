@@ -107,6 +107,28 @@ describe('RequestForm validation', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Photos: Choose up to 5 photos');
   });
 
+  it('keeps photos chosen one at a time, and lets one be removed', async () => {
+    const { user } = setup();
+    const input = screen.getByLabelText('Photos (optional)');
+    await user.upload(input, png('first.png'));
+    await user.upload(input, png('second.png'));
+    expect(screen.getByText('2 of 5 photos chosen')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Remove first.png' }));
+    expect(screen.queryByText('first.png')).not.toBeInTheDocument();
+    expect(screen.getByText('second.png')).toBeInTheDocument();
+    expect(input).toHaveFocus();
+  });
+
+  it('counts photos from several picks towards the limit of 5', async () => {
+    const { user, submit } = setup();
+    const input = screen.getByLabelText('Photos (optional)');
+    await user.upload(input, [1, 2, 3].map((n) => png(`p${n}.png`)));
+    await user.upload(input, [4, 5, 6].map((n) => png(`p${n}.png`)));
+    await submit();
+    expect(screen.getByRole('alert')).toHaveTextContent('Photos: Choose up to 5 photos');
+  });
+
   it('sends trimmed values when the form is valid', async () => {
     createRequest.mockResolvedValue({ ok: true, id: 'req-1' });
     const { user, submit } = setup();

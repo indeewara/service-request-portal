@@ -45,6 +45,22 @@ test("a customer cannot open another customer's request", async ({ page }) => {
   await expect(page.getByText('Created by an end-to-end test.')).toHaveCount(0);
 });
 
+test('photos chosen one at a time are all uploaded', async ({ page }) => {
+  const orderNumber = `SO-E2E-${Date.now()}`;
+  await logIn(page, 'alice@example.com', '/requests/new');
+  await page.getByLabel('Category').selectOption({ index: 1 });
+  await page.getByLabel('Order number').fill(orderNumber);
+  await page.getByLabel('Description').fill('Created by an end-to-end test.');
+  const photos = page.getByLabel('Photos (optional)');
+  for (const name of ['first.png', 'second.png', 'third.png']) {
+    await photos.setInputFiles({ ...tinyPng(), name });
+  }
+  await expect(page.getByText('3 of 5 photos chosen')).toBeVisible();
+  await page.getByRole('button', { name: 'Send request' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Request for order ${orderNumber}`);
+  await expect(page.locator('.photos img')).toHaveCount(3);
+});
+
 test('each role is kept to its own pages', async ({ browser }) => {
   for (const [email, otherRolesPage, home] of [
     ['alice@example.com', '/staff', /\/requests$/],

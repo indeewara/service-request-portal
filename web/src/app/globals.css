@@ -350,6 +350,19 @@ fieldset.plain {
 .upload-name {
   overflow-wrap: anywhere;
 }
+.chosen-photos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.chosen-photos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
 progress {
   width: 100%;
   accent-color: var(--primary);
@@ -496,6 +509,9 @@ tbody tr:hover {
 dd {
   margin: 0.25rem 0 0;
 }
+.contact-email {
+  overflow-wrap: anywhere;
+}
 .customer-text {
   white-space: pre-wrap; /* keep the customer's line breaks; still plain text */
   overflow-wrap: anywhere;
@@ -617,6 +633,7 @@ dd {
 .two-columns {
   display: grid;
   gap: 1.5rem;
+  align-items: start; /* each column keeps its own height (e.g. the short "can't change" notice) */
 }
 @media (min-width: 52rem) {
   .two-columns {

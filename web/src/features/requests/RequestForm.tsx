@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { CATEGORIES, CATEGORY_LABELS } from '@/shared/labels';
 import { completeUpload, createRequest, getUploadTarget } from './actions';
 import { MAX_PHOTOS, validateRequestForm, type FieldErrors, type FieldName } from './schema';
@@ -29,12 +29,31 @@ const describedBy = (name: FieldName, errors: FieldErrors, hint = false) =>
 export function RequestForm() {
   const router = useRouter();
   const summaryRef = useRef<HTMLDivElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [requestId, setRequestId] = useState<string>();
   const [uploads, setUploads] = useState<PhotoUpload[]>([]);
   const [announcement, setAnnouncement] = useState('');
+  // A file input replaces its selection on every pick, so chosen photos are kept here instead.
+  const [photos, setPhotos] = useState<File[]>([]);
+
+  const addPhotos = (event: ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(event.target.files ?? []);
+    event.target.value = ''; // so the same file can be picked again after removing it
+    setPhotos((list) => [
+      ...list,
+      ...picked.filter((f) => !list.some((p) => p.name === f.name && p.size === f.size)),
+    ]);
+    setAnnouncement(`${picked.length === 1 ? '1 photo' : `${picked.length} photos`} added`);
+  };
+
+  const removePhoto = (index: number) => {
+    setAnnouncement(`${photos[index].name} removed`);
+    setPhotos((list) => list.filter((_, i) => i !== index));
+    photoInputRef.current?.focus(); // the button that had focus is gone
+  };
 
   const showProblems = (fieldErrors: FieldErrors, message?: string) => {
     setErrors(fieldErrors);
@@ -50,7 +69,7 @@ export function RequestForm() {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const files = Array.from((form.elements.namedItem('photos') as HTMLInputElement).files ?? []);
+    const files = photos;
     const result = validateRequestForm(
       {
         category: data.get('category') || undefined,
@@ -183,17 +202,40 @@ export function RequestForm() {
         <div className="field">
           <label htmlFor="photos">Photos (optional)</label>
           <p id="photos-hint" className="hint">
-            Up to {MAX_PHOTOS} JPEG or PNG images, 5 MB each.
+            Up to {MAX_PHOTOS} JPEG or PNG images, 5 MB each. Add them together or one at a time.
           </p>
           <input
+            ref={photoInputRef}
             id="photos"
-            name="photos"
             type="file"
             accept="image/jpeg,image/png"
             multiple
+            onChange={addPhotos}
             aria-invalid={!!errors.photos}
             aria-describedby={describedBy('photos', errors, true)}
           />
+          {photos.length > 0 && (
+            <>
+              <p className="hint">
+                {photos.length} of {MAX_PHOTOS} photos chosen
+              </p>
+              <ul className="chosen-photos" aria-label="Chosen photos">
+                {photos.map((photo, i) => (
+                  <li key={`${photo.name}-${photo.size}`}>
+                    <span className="upload-name">{photo.name}</span>
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => removePhoto(i)}
+                      aria-label={`Remove ${photo.name}`}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {errors.photos && (
             <p id="photos-error" className="field-error">
               {errors.photos}
