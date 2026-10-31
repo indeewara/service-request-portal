@@ -133,4 +133,37 @@ describe('Status-change emails (e2e)', () => {
     await new Promise((r) => setTimeout(r, 500));
     expect(await mailpitCount(orderNumber)).toBe(1);
   });
+
+  it('sends an email whose job never reached the queue (sweeper)', async () => {
+    const orderNumber = `SO-${randomUUID().slice(0, 8).toUpperCase()}`;
+    scripted.set(orderNumber, [0.99]);
+    // Redis refuses the job once: the status change still commits, the email stays PENDING.
+    vi.spyOn(notifications.queue, 'add').mockRejectedValueOnce(new Error('Redis down'));
+    const { body } = await api()
+      .post('/requests')
+      .auth(alice, { type: 'bearer' })
+      .send({ category: 'WRONG_ITEM', orderNumber, description: 'Wrong bricks.' })
+      .expect(201);
+    await api()
+      .patch(`/requests/${body.id}/status`)
+      .auth(staff, { type: 'bearer' })
+      .send({ status: 'IN_REVIEW' })
+      .expect(200);
+
+    const repo = app.get(DataSource).getRepository(Notification);
+    const lost = await repo.findOneByOrFail({ requestId: body.id });
+    expect(lost.status).toBe('PENDING');
+    expect(await notifications.queue.getJob(lost.id)).toBeFalsy();
+
+    // The sweeper only picks up rows older than its interval, so age this one first.
+    await repo.update(lost.id, { createdAt: new Date(Date.now() - 60_000) });
+    await notifications.sweep();
+
+    const sent = await waitFor(async () => {
+      const n = await repo.findOneBy({ id: lost.id });
+      return n?.status === 'SENT' ? n : undefined;
+    });
+    expect(sent.attempts).toBe(1);
+    await waitFor(async () => ((await mailpitCount(orderNumber)) === 1 ? true : undefined));
+  });
 });

@@ -83,13 +83,13 @@ Two customers exist so cross-customer access can be tested (Alice must never see
 cd api
 npm ci
 cp .env.example .env  # the integration tests connect to the services on localhost
-npm test              # unit: status workflow (all 16 transitions), guard, ownership rule, route access table
+npm test              # unit: status workflow (all 16 transitions), guard, ownership rule, route access table, config validation
 npm run test:e2e      # integration against real Postgres/Redis/S3/Mailpit (needs: docker compose up db redis localstack mailpit)
 
 # Web
 cd web
 npm ci
-npm test              # component tests: request form validation
+npm test              # unit + component: request form validation, post-login redirect and role rules
 npx playwright install chromium
 npm run test:e2e      # Playwright: customer flow (desktop + mobile), axe scans, keyboard-only flow
 ```
@@ -219,7 +219,7 @@ Live updates: an SSE event doesn't carry data, it triggers `router.refresh()`, w
 - **Customer-written text** (description, file names) is rendered as React text nodes, which escape HTML; there is no `dangerouslySetInnerHTML`. Line breaks are kept with CSS (`white-space: pre-wrap`).
 - **Headers:** a Content-Security-Policy limits scripts, styles and connections to the site itself plus the photo bucket (`connect-src`/`img-src`), blocks framing (`frame-ancestors 'none'`) and forms posting elsewhere; plus `nosniff` and `Referrer-Policy: same-origin`. Scripts still need `'unsafe-inline'` because Next.js inlines its hydration data; nonces would remove that.
 - **Route guard vs authorization:** the proxy only decodes the token to choose which pages to show; it doesn't verify it. The API verifies the token and checks access on every call, so a forged cookie gets nothing.
-- **Open redirects:** `?next=` after login only accepts same-site paths.
+- **Open redirects:** `?next=` after login only accepts paths on this site, parsed the way a browser would (so `//evil.com` and `/\evil.com` are refused), and only pages the user's role may open.
 
 ### Accessibility
 - Every input has a `<label>`; hints and errors are tied to the field with `aria-describedby`, invalid fields get `aria-invalid`.
@@ -268,8 +268,8 @@ web/src/
 Rules: `app/` only composes; features never import from each other or get imported by `shared/`, only the other way round (checked: no `@/features` import outside `app/`). A customer-team change stays inside `features/requests` and `app/requests`; a staff-team change inside `features/staff` and `app/staff`. With a CODEOWNERS file, each team owns its folders and `shared/` needs both. The API's response types live in `shared/api/types.ts`; generating them from the API's OpenAPI document (`/docs-json`) would keep them in sync automatically and is the next step.
 
 ### Tests
-- **Component tests** (Vitest + Testing Library, `npm test`): the request form's validation. They cover the missing fields, whitespace-only input, a description over 2000 characters, wrong file type, a file over 5 MB and more than 5 photos. They also check that each error is announced (`role="alert"`), linked to its field and read with the field's description, that focus moves to the summary, that valid input is trimmed and sent, and that the API's "order not found" shows on the order-number field.
-- **End-to-end** (Playwright, `npm run test:e2e`, needs the full stack running): the main customer flow on desktop and a mobile viewport. The customer logs in from a protected page, fills in the form, uploads a real PNG straight to S3, and lands on the request. Then staff change the status and the open page updates without a reload. Plus: Bob can't open Alice's request, cookie flags, the axe scans above, and the keyboard-only staff flow.
+- **Component tests** (Vitest + Testing Library, `npm test`): the request form's validation. They cover the missing fields, whitespace-only input, a description over 2000 characters, wrong file type, a file over 5 MB and more than 5 photos. They also check that each error is announced (`role="alert"`), linked to its field and read with the field's description, that focus moves to the summary, that valid input is trimmed and sent, and that the API's "order not found" shows on the order-number field. Unit tests also cover the post-login redirect (`safeNext`: full URLs, `//`, backslash and hidden-tab tricks are refused) and which role may open which page (`canOpen`), the rule shared by the route guard and the login action.
+- **End-to-end** (Playwright, `npm run test:e2e`, needs the full stack running): the main customer flow on desktop and a mobile viewport. The customer logs in from a protected page, fills in the form, uploads a real PNG straight to S3, and lands on the request. Then staff change the status and the open page updates without a reload. Plus: Bob can't open Alice's request, each role is kept to its own pages, cookie flags, the axe scans above, and the keyboard-only staff flow.
 
 ## Parts C, D, E
 - [DATABASE.md](DATABASE.md) — slow query investigation, indexes, keyset pagination, zero-downtime category migration.
