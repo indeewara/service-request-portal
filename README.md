@@ -114,7 +114,7 @@ One NestJS app, one database. Each module owns its tables (registers only its ow
 
 `src/common/` is shared plumbing, not a module: error filter, correlation id, logging config.
 
-**Direction of dependencies.** `requests` calls `notifications` directly after a status change: it records the email in the same transaction (outbox), then enqueues the job and publishes the live event after commit. `notifications` never calls back into `requests`; it only reads the request status enum. So dependencies point one way: `attachments → requests → notifications → auth`.
+**Direction of dependencies.** `requests` calls `notifications` directly after a status change: it records the email in the same transaction (outbox), then enqueues the job and publishes the live event after commit. `notifications` never calls back into `requests` and imports nothing from it; the status enum they share lives in `src/common/`. So dependencies point one way: `attachments → requests → notifications → auth`.
 
 **Why direct calls, not domain events.** With one consumer per change, an in-process event bus would add indirection without decoupling anything. The seam is already narrow (two methods), so moving `notifications` into its own service later means swapping those calls for a message (SQS/EventBridge) and nothing else; the outbox row stays the source of truth.
 

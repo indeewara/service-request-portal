@@ -5,13 +5,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { RequestStatus } from '../common/request-status.js';
 
-export enum RequestStatus {
-  NEW = 'NEW',
-  IN_REVIEW = 'IN_REVIEW',
-  RESOLVED = 'RESOLVED',
-  REJECTED = 'REJECTED',
-}
+export { RequestStatus };
 
 export enum RequestCategory {
   DAMAGED_DELIVERY = 'DAMAGED_DELIVERY',

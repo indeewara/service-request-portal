@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import { EntityManager, LessThan, Repository } from 'typeorm';
-import { RequestStatus } from '../requests/service-request.entity.js';
+import { RequestStatus } from '../common/request-status.js';
 import { Notification, NotificationStatus } from './notification.entity.js';
 import { redisUrl } from './redis.js';
 

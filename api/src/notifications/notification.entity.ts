@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { RequestStatus } from '../requests/service-request.entity.js';
+import { RequestStatus } from '../common/request-status.js';
 
 export enum NotificationStatus {
   PENDING = 'PENDING',

@@ -1,7 +1,7 @@
 import { Injectable, Logger, MessageEvent, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { filter, interval, map, merge, Observable, Subject } from 'rxjs';
-import { RequestStatus } from '../requests/service-request.entity.js';
+import { RequestStatus } from '../common/request-status.js';
 import { redisUrl } from './redis.js';
 
 const CHANNEL = 'request-status';

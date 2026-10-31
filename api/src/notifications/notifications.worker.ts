@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Job, UnrecoverableError, Worker } from 'bullmq';
 import { Repository } from 'typeorm';
 import { UsersService } from '../auth/users.service.js';
-import { RequestStatus } from '../requests/service-request.entity.js';
+import { RequestStatus } from '../common/request-status.js';
 import { MockEmailProvider } from './mock-email.provider.js';
 import { Notification, NotificationStatus } from './notification.entity.js';
 import { EmailJob, NOTIFICATIONS_QUEUE } from './notifications.service.js';
