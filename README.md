@@ -49,9 +49,10 @@ LEADERSHIP.md   Part E – tech lead scenarios
 
 ### Run everything
 ```bash
-cp .env.example .env
 docker compose up --build
 ```
+
+No `.env` file is needed: the compose file sets everything the containers use. The first run takes a few minutes while the images build. It needs ports 3000, 4000, 5432, 6379, 4566, 1025 and 8025 to be free.
 
 | Service | URL |
 |---|---|
