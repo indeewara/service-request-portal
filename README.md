@@ -96,6 +96,27 @@ npm run test:e2e      # Playwright: customer flow (desktop + mobile), axe scans,
 
 The web end-to-end tests need the full stack running, and they log in many times, so start it with a higher login limit: `LOGIN_RATE_LIMIT=1000 docker compose up`. On macOS 13, where Playwright's own Chromium isn't supported, add `PLAYWRIGHT_CHANNEL=chrome` to use the installed Chrome.
 
+### Load test
+With the stack running (`docker compose up`):
+```bash
+infra/load-test/run.sh                    # adds 50,000 requests, then 20 users for 60 s
+ROWS=0 USERS=50 infra/load-test/run.sh    # stress: 50 users, no extra data
+infra/load-test/run.sh cleanup            # removes everything the load test added
+```
+Each simulated user repeats a realistic mix with no pause: the staff dashboard with filters and paging (40%), staff opening a request and its photos (25%), customers viewing their requests (20%), creating requests (10%), and status changes that send emails (5%). The script reports throughput, response-time percentiles and errors per action, then waits for the emails and counts them. It only touches its own data (order numbers `SO-LOAD-…` and `SO-LT-…`).
+
+Results on a laptop (Docker on Colima, one API instance, about 50,000 requests stored):
+
+| Users | Requests/s | p50 | p95 | Errors |
+|---|---|---|---|---|
+| 20 | 216 | 73 ms | 213 ms | 0 |
+| 50 (stress) | 202 | 208 ms | 542 ms | 0 |
+
+- **No errors at either level,** and `/health` stayed `ok`.
+- **Throughput levels off at about 200 requests a second,** the limit of one API process (its CPU saturates first, then the database's). More users just queue, so response times grow; nothing fails. In production, more API tasks raise this limit.
+- For scale: 3,000 new requests a day (the brief's 10× growth) is a few page loads a minute, far below this.
+- **Every status change led to exactly one email record.** About 0.3% ended `FAILED`, as expected: the mock provider fails 30% of attempts on purpose, so 5 failures in a row happen about 0.24% of the time, and those are kept for inspection.
+
 ---
 
 ## Part A – Backend

@@ -305,7 +305,7 @@ Alerts go from CloudWatch to whoever is on call, by email or Slack.
 
 ### Q7. Growth
 
-At ten times the load (about 3,000 requests a day) traffic is still a few page loads a minute, so nothing breaks from load. What changes is the amount of data and the cost of an outage.
+At ten times the load (about 3,000 requests a day) traffic is still a few page loads a minute, so nothing breaks from load. A load test backs this up: on a laptop, one API instance handled about 200 requests a second with 50,000 requests stored, with no errors (see the README). What changes is the amount of data and the cost of an outage.
 
 1. **The staff dashboard slows down.** A million rows a year makes page numbers and exact counts slow; it's the Part C problem. The fix is keyset paging and the partial index from [DATABASE.md](DATABASE.md), and the code already marks this upgrade.
 2. **Downtime matters more.** After the national rollout, the single-AZ database and single Valkey node become the weak spots, so we take the upgrade step: Multi-AZ and a replica, about $100 more a month.
