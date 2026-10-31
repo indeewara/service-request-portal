@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { homeFor, readClaims, SESSION_COOKIE } from '@/shared/auth/token';
+import { canOpen, homeFor, readClaims, SESSION_COOKIE } from '@/shared/auth/token';
 
 /**
  * Route guard, before any page renders: customer pages need a CUSTOMER session,
@@ -24,8 +24,7 @@ export function proxy(request: NextRequest) {
     res.cookies.delete(SESSION_COOKIE); // expired or malformed
     return res;
   }
-  const needed = pathname.startsWith('/staff') ? 'STAFF' : 'CUSTOMER';
-  return claims.role === needed ? NextResponse.next() : to(homeFor(claims.role));
+  return canOpen(claims.role, pathname) ? NextResponse.next() : to(homeFor(claims.role));
 }
 
 export const config = {

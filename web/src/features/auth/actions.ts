@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { ApiError, callApi } from '@/shared/api/client';
 import type { LoginResult } from '@/shared/api/types';
 import { startSession } from '@/shared/auth/session';
-import { homeFor, readClaims } from '@/shared/auth/token';
+import { canOpen, homeFor, readClaims, safeNext } from '@/shared/auth/token';
 
 export interface LoginState {
   error?: string;
@@ -17,10 +17,6 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password').max(200),
   next: z.string().optional(),
 });
-
-// Only same-site paths, so ?next= can't send users to another site.
-const safeNext = (next?: string) =>
-  next && next.startsWith('/') && !next.startsWith('//') ? next : undefined;
 
 export async function login(_: LoginState, form: FormData): Promise<LoginState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(form));
@@ -45,5 +41,7 @@ export async function login(_: LoginState, form: FormData): Promise<LoginState> 
   const claims = readClaims(result.accessToken);
   if (!claims) return { error: 'Login failed. Please try again.' };
   await startSession(result.accessToken, claims.expiresAt);
-  redirect(safeNext(parsed.data.next) ?? homeFor(claims.role));
+  // Only follow ?next= to a page this role may open; otherwise go home.
+  const next = safeNext(parsed.data.next);
+  redirect(next && canOpen(claims.role, next) ? next : homeFor(claims.role));
 }

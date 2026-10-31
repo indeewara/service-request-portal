@@ -26,3 +26,26 @@ export function readClaims(token: string | undefined): SessionClaims | null {
 }
 
 export const homeFor = (role: Role) => (role === 'STAFF' ? '/staff' : '/requests');
+
+// '/staff', '/staff/…' or '/staff?…', but not '/staffing'.
+const under = (path: string, section: string) =>
+  path.startsWith(section) && /^([/?#]|$)/.test(path.slice(section.length));
+
+/** Staff pages are for STAFF, customer pages for CUSTOMER; anything else is open to both. */
+export function canOpen(role: Role, path: string): boolean {
+  if (under(path, '/staff')) return role === 'STAFF';
+  if (under(path, '/requests')) return role === 'CUSTOMER';
+  return true;
+}
+
+const SELF = 'http://portal.invalid';
+
+/**
+ * Where to go after login: a path on this site, or undefined. Parsed the way a
+ * browser would, so tricks like `//evil.com` or `/\evil.com` can't leave the site.
+ */
+export function safeNext(next?: string): string | undefined {
+  if (!next?.startsWith('/')) return undefined;
+  const url = new URL(next, SELF);
+  return url.origin === SELF ? url.pathname + url.search + url.hash : undefined;
+}

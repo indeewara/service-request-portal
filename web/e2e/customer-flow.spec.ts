@@ -44,3 +44,16 @@ test("a customer cannot open another customer's request", async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found');
   await expect(page.getByText('Created by an end-to-end test.')).toHaveCount(0);
 });
+
+test('each role is kept to its own pages', async ({ browser }) => {
+  for (const [email, otherRolesPage, home] of [
+    ['alice@example.com', '/staff', /\/requests$/],
+    ['staff@example.com', '/requests/new', /\/staff$/],
+  ] as const) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await logIn(page, email, otherRolesPage);
+    await expect(page).toHaveURL(home);
+    await context.close();
+  }
+});
