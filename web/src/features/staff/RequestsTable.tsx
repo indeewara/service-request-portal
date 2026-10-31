@@ -13,6 +13,7 @@ export function RequestsTable({ items, caption }: { items: ServiceRequest[]; cap
         <thead>
           <tr>
             <th scope="col">Order</th>
+            <th scope="col">Customer</th>
             <th scope="col">Category</th>
             <th scope="col">Status</th>
             <th scope="col">Submitted</th>
@@ -24,6 +25,7 @@ export function RequestsTable({ items, caption }: { items: ServiceRequest[]; cap
               <th scope="row">
                 <Link href={`/staff/requests/${r.id}`}>{r.orderNumber}</Link>
               </th>
+              <td>{r.customerName}</td>
               <td>{CATEGORY_LABELS[r.category]}</td>
               <td>
                 <StatusBadge status={r.status} />

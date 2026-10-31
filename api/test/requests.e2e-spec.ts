@@ -201,6 +201,42 @@ describe('Service requests (e2e)', () => {
     });
   });
 
+  describe('customer details', () => {
+    it('shows staff who raised a request, and never shows them to customers', async () => {
+      const { body } = await create(alice).expect(201);
+
+      const forStaff = await api()
+        .get(`/requests/${body.id}`)
+        .auth(staff, { type: 'bearer' })
+        .expect(200);
+      expect(forStaff.body.customer).toEqual({
+        name: 'Alice Customer',
+        email: 'alice@example.com',
+      });
+
+      const forAlice = await api()
+        .get(`/requests/${body.id}`)
+        .auth(alice, { type: 'bearer' })
+        .expect(200);
+      expect(forAlice.body).not.toHaveProperty('customer');
+
+      // The staff list carries the name only, no email.
+      const list = await api()
+        .get('/requests?pageSize=100')
+        .auth(staff, { type: 'bearer' })
+        .expect(200);
+      const row = list.body.items.find((r: { id: string }) => r.id === body.id);
+      expect(row.customerName).toBe('Alice Customer');
+      expect(JSON.stringify(list.body)).not.toContain('@example.com');
+
+      const mine = await api()
+        .get('/requests/mine?pageSize=100')
+        .auth(alice, { type: 'bearer' })
+        .expect(200);
+      expect(mine.body.items[0]).not.toHaveProperty('customerName');
+    });
+  });
+
   describe('GET /requests (staff)', () => {
     it('filters by status and category and paginates', async () => {
       const { body } = await api()

@@ -126,8 +126,8 @@ One NestJS app, one database. Each module owns its tables (registers only its ow
 | POST | `/auth/login` | public | 5 attempts/min per client IP (`429` + `Retry-After`) |
 | POST | `/requests` | CUSTOMER | Validates order number via ERP mock, returns status `NEW` |
 | GET | `/requests/mine` | CUSTOMER | Own requests only; pagination |
-| GET | `/requests` | STAFF | Filters: `status`, `category`, `from`, `to` (dates, inclusive, UTC); pagination |
-| GET | `/requests/:id` | owner or STAFF | Request + status history (who, when) |
+| GET | `/requests` | STAFF | Filters: `status`, `category`, `from`, `to` (dates, inclusive, UTC); pagination; each item includes the customer's name |
+| GET | `/requests/:id` | owner or STAFF | Request + status history (who, when); staff also get the customer's name and email |
 | PATCH | `/requests/:id/status` | STAFF | Rejects invalid transitions (`409`); writes history |
 | GET | `/requests/:id/events` | owner or STAFF | SSE stream: `status` events `{ requestId, status }`, `ping` every 25 s |
 | POST | `/requests/:id/attachments/upload-url` | owner (CUSTOMER) | JPEG/PNG, ≤ 5 MB, ≤ 5 per request; returns a pre-signed POST (5 min) |
@@ -238,9 +238,9 @@ Live updates: an SSE event doesn't carry data, it triggers `router.refresh()`, w
 | `/requests/new` | 25 | 0 |
 | `/requests/new` with validation errors | 25 | 0 |
 | `/requests` | 21 | 0 |
-| `/requests/[id]` | 24 | 0 |
+| `/requests/[id]` | 25 | 0 |
 | `/staff` | 27 | 0 |
-| `/staff/requests/[id]` | 25 | 0 |
+| `/staff/requests/[id]` | 26 | 0 |
 | `/staff/requests/[id]` with the confirm dialog open | 11 | 0 |
 
 A keyboard-only test also opens a request from the staff table, opens and cancels the dialog with Escape, and confirms a status change, using only Tab/Enter/Escape. Automated checks catch roughly a third of issues; a manual screen-reader pass (VoiceOver/NVDA) is still on the list.
@@ -289,6 +289,7 @@ Rules: `app/` only composes; features never import from each other or get import
 - Date filters (`from`, `to`) are whole days in UTC, both inclusive.
 - The API lets the owner add photos in any status (up to 5); the web app offers it only while creating the request. Staff can view photos but not upload them.
 - Status history shows customers "You" or "Service team", not staff names.
+- Staff see who raised each request: the customer's name in the dashboard, and name and email on the request page so they can get in touch. Customers never receive anyone's contact details.
 - All dates and times are in UTC, and the portal is in English only.
 - Locally, the email provider is a mock that fails on purpose and delivers to Mailpit. Production would use Amazon SES (see [DESIGN.md](DESIGN.md)).
 

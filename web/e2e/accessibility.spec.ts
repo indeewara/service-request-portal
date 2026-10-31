@@ -39,8 +39,11 @@ test('staff pages', async ({ page }) => {
   await expectNoViolations(page, '/staff');
 
   await page.goto('/staff?status=NEW');
+  await expect(page.getByRole('columnheader', { name: 'Customer' })).toBeVisible();
   await page.getByRole('table').getByRole('link').first().click();
   await expect(page).toHaveURL(/\/staff\/requests\//);
+  // Staff see who raised the request and how to contact them.
+  await expect(page.getByRole('link', { name: /@example\.com$/ })).toHaveAttribute('href', /^mailto:/);
   await expectNoViolations(page, '/staff/requests/[id]');
 
   await page.getByRole('button', { name: 'Change status…' }).click();

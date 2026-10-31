@@ -16,7 +16,11 @@ export function RequestDetails({
   viewer: 'customer' | 'staff';
 }) {
   const who = (userId: string) =>
-    userId === request.customerId ? (viewer === 'customer' ? 'You' : 'Customer') : 'Service team';
+    userId === request.customerId
+      ? viewer === 'customer'
+        ? 'You'
+        : (request.customer?.name ?? 'Customer')
+      : 'Service team';
 
   return (
     <div className="stack">
@@ -39,6 +43,18 @@ export function RequestDetails({
           <dt>Submitted</dt>
           <dd>{formatDateTime(request.createdAt)}</dd>
         </div>
+        {request.customer && (
+          <div>
+            <dt>Customer</dt>
+            <dd>
+              {request.customer.name}
+              <br />
+              <a href={`mailto:${request.customer.email}`} className="contact-email">
+                {request.customer.email}
+              </a>
+            </dd>
+          </div>
+        )}
       </dl>
 
       <section aria-labelledby="description-title">

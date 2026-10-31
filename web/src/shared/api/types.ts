@@ -14,6 +14,8 @@ export interface ServiceRequest {
   status: RequestStatus;
   createdAt: string;
   updatedAt: string;
+  /** Only in the staff list. */
+  customerName?: string;
 }
 
 export interface StatusChange {
@@ -26,6 +28,8 @@ export interface StatusChange {
 
 export interface RequestDetails extends ServiceRequest {
   history: StatusChange[];
+  /** Only returned to staff. */
+  customer?: { name: string; email: string };
 }
 
 export interface RequestPage {

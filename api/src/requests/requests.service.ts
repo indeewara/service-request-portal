@@ -6,8 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
-import { AuthUser } from '../auth/auth.types.js';
+import { AuthUser, Role } from '../auth/auth.types.js';
 import { assertCanAccessRequest } from '../auth/request-access.js';
+import { UsersService } from '../auth/users.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RequestEventsService } from '../notifications/request-events.service.js';
 import { OrdersService } from '../orders/orders.service.js';
@@ -31,6 +32,7 @@ export class RequestsService {
     private readonly orders: OrdersService,
     private readonly notifications: NotificationsService,
     private readonly events: RequestEventsService,
+    private readonly users: UsersService,
   ) {}
 
   async create(user: AuthUser, dto: CreateRequestDto) {
@@ -82,7 +84,14 @@ export class RequestsService {
       qb.andWhere(`r.createdAt < CAST(:to AS date) + interval '1 day'`, { to });
     }
     const [items, total] = await qb.getManyAndCount();
-    return { items, total, page, pageSize };
+    // Staff need to know who raised each request; one query for the whole page.
+    const names = await this.users.findNames([...new Set(items.map((r) => r.customerId))]);
+    return {
+      items: items.map((r) => ({ ...r, customerName: names.get(r.customerId) ?? '' })),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   /**
@@ -102,7 +111,10 @@ export class RequestsService {
       where: { requestId: id },
       order: { changedAt: 'ASC' },
     });
-    return { ...request, history };
+    // Contact details only for staff: a customer already knows who they are.
+    const customer =
+      user.role === Role.STAFF ? await this.users.findContact(request.customerId) : null;
+    return { ...request, history, ...(customer && { customer }) };
   }
 
   async changeStatus(

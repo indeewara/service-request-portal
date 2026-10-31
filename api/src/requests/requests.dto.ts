@@ -77,8 +77,19 @@ export class ChangeStatusDto {
   status: RequestStatus;
 }
 
+/** Who raised a request. Only returned to staff. */
+export class CustomerContact {
+  name: string;
+  email: string;
+}
+
+export class RequestListItem extends ServiceRequest {
+  /** The customer's name. Only in the staff list. */
+  customerName?: string;
+}
+
 export class RequestPage {
-  items: ServiceRequest[];
+  items: RequestListItem[];
   total: number;
   page: number;
   pageSize: number;
@@ -87,4 +98,6 @@ export class RequestPage {
 export class RequestDetails extends ServiceRequest {
   /** Every status change, oldest first. */
   history: StatusHistory[];
+  /** Only returned to staff. */
+  customer?: CustomerContact;
 }
