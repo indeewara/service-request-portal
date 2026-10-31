@@ -290,12 +290,12 @@ _TODO: fill in honestly at the end (e.g. refresh tokens, virus scanning of uploa
 ## Assessment checklist
 
 **Part A – Backend**
-- [ ] Auth: seeded users, JWT login, CUSTOMER/STAFF roles, per-request authorization
-- [ ] `POST /requests` with ERP mock validation
-- [ ] Pre-signed upload URL (JPEG/PNG, 5 MB, 5 photos), private bucket, pre-signed download
-- [ ] Status workflow + history table (who, when)
-- [ ] `GET /requests` (filters + pagination), `GET /requests/mine`
-- [ ] BullMQ email queue: flaky mock provider, backoff, keep failed jobs, no duplicates
+- [x] Auth: seeded users, JWT login, CUSTOMER/STAFF roles, per-request authorization
+- [x] `POST /requests` with ERP mock validation
+- [x] Pre-signed upload URL (JPEG/PNG, 5 MB, 5 photos), private bucket, pre-signed download
+- [x] Status workflow + history table (who, when)
+- [x] `GET /requests` (filters + pagination), `GET /requests/mine`
+- [x] BullMQ email queue: flaky mock provider, backoff, keep failed jobs, no duplicates
 - [x] Live updates (SSE)
 - [x] Migrations, validation, consistent errors, Swagger
 - [x] JSON logs + correlation ID, no PII
